@@ -1,0 +1,672 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>KOROBULKI</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@62..125,100..900&family=IBM+Plex+Mono:wght@400;500&family=Playfair+Display:wght@700..900&display=swap">
+<style>
+:root{
+  --paper:#FFFFFF;--ink:#121212;--graphite:#66686C;--rule:#D5D6D8;--grid:#E8E9EA;--tone:#E6E6E4;
+  --f-sans:"Archivo","Helvetica Neue",Arial,sans-serif;
+  --f-mono:"IBM Plex Mono",ui-monospace,"SF Mono",Menlo,monospace;
+}
+@media (prefers-color-scheme:dark){
+  :root:not([data-theme="light"]){color-scheme:dark;--paper:#0D0E0F;--ink:#EEEEEA;--graphite:#8D9095;--rule:#34363A;--grid:#1C1E20;--tone:#232527}
+}
+:root[data-theme="dark"]{color-scheme:dark;--paper:#0D0E0F;--ink:#EEEEEA;--graphite:#8D9095;--rule:#34363A;--grid:#1C1E20;--tone:#232527}
+
+*,*::before,*::after{box-sizing:border-box}
+html,body{height:100%}
+body{margin:0;background:var(--paper);color:var(--ink);font-family:var(--f-sans);font-size:14px;line-height:1.45;-webkit-font-smoothing:antialiased}
+
+.app{height:100%;min-height:520px;display:grid;grid-template-rows:auto minmax(0,1fr) auto;padding-inline:clamp(16px,2.4vw,36px);padding-block:14px 18px}
+.masthead{padding-bottom:12px;border-bottom:2px solid var(--ink)}
+.wordmark{margin:0;font-size:clamp(40px,6vw,88px);line-height:.78;font-weight:850;font-variation-settings:"wdth" 125;letter-spacing:-.012em}
+
+.stage{position:relative;min-width:0;min-height:0;overflow:hidden}
+#scene{position:absolute;inset:0;width:100%;height:100%;display:block;cursor:grab;touch-action:pan-y}
+#scene.is-dragging{cursor:grabbing}
+#scene:focus-visible{outline:1.5px solid var(--ink);outline-offset:-8px}
+
+.fields{margin:0;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:clamp(14px,3vw,48px);padding-top:14px;border-top:1px solid var(--ink)}
+.field-label{display:inline-flex;align-items:center;gap:9px;font:500 11px/1 var(--f-mono);letter-spacing:.09em;text-transform:uppercase;cursor:ew-resize;user-select:none;-webkit-user-select:none;touch-action:none}
+.axis{display:inline-grid;place-items:center;width:18px;height:18px;background:var(--ink);color:var(--paper);font-weight:500;letter-spacing:0}
+.field-row{display:flex;align-items:baseline;gap:8px;border-bottom:1.5px solid var(--ink);transition:box-shadow .15s}
+.field-row:focus-within{box-shadow:0 1.5px 0 var(--ink)}
+.field input{flex:1;min-width:0;margin:0;padding:6px 0 2px;border:0;background:transparent;color:var(--ink);font:600 clamp(30px,4.4vw,56px)/1.05 var(--f-sans);font-variation-settings:"wdth" 108;font-variant-numeric:tabular-nums;letter-spacing:-.01em;outline:none;appearance:textfield;-moz-appearance:textfield}
+.field input::-webkit-outer-spin-button,.field input::-webkit-inner-spin-button{-webkit-appearance:none;margin:0}
+.unit{font:500 12px var(--f-mono);color:var(--graphite)}
+.field-note{margin:5px 0 0;min-height:15px;font:400 11px/1.3 var(--f-mono);color:var(--graphite)}
+
+@media (max-width:560px){
+  .field-label{gap:6px;letter-spacing:.04em}
+  .field-label .name{display:none}
+  .unit{display:none}
+}
+</style>
+</head>
+<body>
+
+<div class="app">
+  <header class="masthead">
+    <h1 class="wordmark">KOROBULKI</h1>
+  </header>
+
+  <main class="stage" id="stage">
+    <canvas id="scene" tabindex="0" role="img" aria-label="Caisse à cadre 600 × 600 × 600 mm, vue axonométrique"></canvas>
+  </main>
+
+  <form class="fields" id="dims" novalidate aria-label="Dimensions de la caisse, mm">
+    <div class="field" data-key="w">
+      <label class="field-label" for="in-w"><span class="axis">L</span><span class="name">Largeur</span></label>
+      <div class="field-row"><input id="in-w" name="w" type="number" inputmode="numeric" min="100" max="4000" step="10" value="600" autocomplete="off" aria-label="Largeur, mm"><span class="unit">mm</span></div>
+      <p class="field-note" id="note-w" aria-live="polite"></p>
+    </div>
+    <div class="field" data-key="h">
+      <label class="field-label" for="in-h"><span class="axis">H</span><span class="name">Hauteur</span></label>
+      <div class="field-row"><input id="in-h" name="h" type="number" inputmode="numeric" min="100" max="4000" step="10" value="600" autocomplete="off" aria-label="Hauteur, mm"><span class="unit">mm</span></div>
+      <p class="field-note" id="note-h" aria-live="polite"></p>
+    </div>
+    <div class="field" data-key="d">
+      <label class="field-label" for="in-d"><span class="axis">P</span><span class="name">Profondeur</span></label>
+      <div class="field-row"><input id="in-d" name="d" type="number" inputmode="numeric" min="100" max="4000" step="10" value="600" autocomplete="off" aria-label="Profondeur, mm"><span class="unit">mm</span></div>
+      <p class="field-note" id="note-d" aria-live="polite"></p>
+    </div>
+  </form>
+</div>
+
+<script>
+(() => {
+  'use strict';
+  const $ = (s) => document.querySelector(s);
+  const canvas = $('#scene');
+  const ctx = canvas.getContext('2d');
+  const stage = $('#stage');
+  const RM = matchMedia('(prefers-reduced-motion: reduce)');
+
+  const KEYS = ['w', 'h', 'd'];
+  const MIN = 100, MAX = 4000, CAP = 260;
+  // ISO 5455 : échelles d’agrandissement et de réduction
+  const LADDER = [0.2, 0.25, 0.4, 0.5, 1, 2, 2.5, 4, 5, 10, 15, 20, 25, 40, 50, 75, 100, 200];
+  const VIEW0 = { yaw: 0.58, pitch: 0.42 };
+  const SHADOW = [0.55, 0.2];                       // décalage de l’ombre par mm de hauteur (x, z)
+  const BATTEN = { first: 450, pitch: 900, bay: 330 }; // traverses de renfort : depuis le centre, pas, travée min.
+  const SERIF = '"Playfair Display", Didot, "Bodoni 72", Georgia, serif';
+  const SANS = 'Archivo, "Helvetica Neue", Arial, sans-serif';
+  const MONO = '"IBM Plex Mono", ui-monospace, Menlo, monospace';
+
+  const clamp = (v, a, b) => Math.min(b, Math.max(a, v));
+  const lerp = (a, b, t) => a + (b - a) * t;
+  const spr = (x) => ({ x, v: 0, t: x });
+  const step = (s, dt, k, zeta) => { s.v += (k * (s.t - s.x) - 2 * Math.sqrt(k) * zeta * s.v) * dt; s.x += s.v * dt; };
+  const near = (s, e) => Math.abs(s.t - s.x) < e && Math.abs(s.v) < e * 10;
+
+  const nf0 = new Intl.NumberFormat('fr-FR', { maximumFractionDigits: 0 });
+
+  const inputs = {}, notes = {}, dims = {};
+  KEYS.forEach((k) => {
+    inputs[k] = $('#in-' + k);
+    notes[k] = $('#note-' + k);
+    const t = Math.log(clamp(parseFloat(inputs[k].value) || 600, MIN, MAX));
+    dims[k] = spr(RM.matches ? t : t + Math.log(0.3));
+    dims[k].t = t;
+  });
+  const view = { yaw: spr(VIEW0.yaw), pitch: spr(VIEW0.pitch), vel: 0 };
+  const cam = { lz: spr(0), x: spr(0), y: spr(0), N: 10 };
+  let SW = 0, SH = 0, dpr = 1, pal = {}, raf = 0, last = 0, drag = null, booted = false;
+  const cur = (k) => Math.exp(dims[k].x);
+  const tgt = (k) => Math.exp(dims[k].t);
+
+  function readPalette() {
+    const cs = getComputedStyle(document.documentElement);
+    const g = (n) => cs.getPropertyValue(n).trim();
+    pal = { paper: g('--paper'), ink: g('--ink'), graphite: g('--graphite'), rule: g('--rule'), grid: g('--grid'), tone: g('--tone') };
+  }
+
+  /* ---------- 2D affine helpers: [a, b, c, d, e, f] ---------- */
+  const mul = (m, n) => [
+    m[0] * n[0] + m[2] * n[1], m[1] * n[0] + m[3] * n[1],
+    m[0] * n[2] + m[2] * n[3], m[1] * n[2] + m[3] * n[3],
+    m[0] * n[4] + m[2] * n[5] + m[4], m[1] * n[4] + m[3] * n[5] + m[5],
+  ];
+  const ap = (m, x, y) => [m[0] * x + m[2] * y + m[4], m[1] * x + m[3] * y + m[5]];
+  const scaleOf = (m) => Math.sqrt(Math.abs(m[0] * m[3] - m[1] * m[2]));
+  const local = (m) => ctx.setTransform(dpr * m[0], dpr * m[1], dpr * m[2], dpr * m[3], dpr * m[4], dpr * m[5]);
+  const flat = () => ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  // Le tracé est construit en mm locaux de la face et dessiné en px écran : épaisseur de trait constante.
+  function trace(m, fn) { local(m); ctx.beginPath(); fn(ctx); flat(); }
+  function ink(lw) { ctx.lineWidth = lw; ctx.strokeStyle = pal.ink; ctx.stroke(); }
+  function fillPaper() { ctx.fillStyle = pal.paper; ctx.fill(); }
+  function polyPath(pts) { ctx.beginPath(); pts.forEach((p, i) => (i ? ctx.lineTo(p[0], p[1]) : ctx.moveTo(p[0], p[1]))); ctx.closePath(); }
+  function dotAt(q, r) { ctx.moveTo(q[0] + r, q[1]); ctx.arc(q[0], q[1], r, 0, Math.PI * 2); }
+
+  function hull(pts) {
+    const p = pts.slice().sort((a, b) => a[0] - b[0] || a[1] - b[1]);
+    if (p.length < 3) return p;
+    const cr = (o, a, b) => (a[0] - o[0]) * (b[1] - o[1]) - (a[1] - o[1]) * (b[0] - o[0]);
+    const lo = [], up = [];
+    for (const q of p) { while (lo.length >= 2 && cr(lo[lo.length - 2], lo[lo.length - 1], q) <= 0) lo.pop(); lo.push(q); }
+    for (let i = p.length - 1; i >= 0; i--) { const q = p[i]; while (up.length >= 2 && cr(up[up.length - 2], up[up.length - 1], q) <= 0) up.pop(); up.push(q); }
+    lo.pop(); up.pop();
+    return lo.concat(up);
+  }
+
+  /* ---------- model ---------- */
+  function projector(yaw, pitch) {
+    const cy = Math.cos(yaw), sy = Math.sin(yaw), cp = Math.cos(pitch), sp = Math.sin(pitch);
+    return (x, y, z) => { const x1 = x * cy + z * sy, z1 = -x * sy + z * cy; return [x1, -(y * cp - z1 * sp), y * sp + z1 * cp]; };
+  }
+  // U — vers la droite, V — vers le bas, face vue de l’extérieur.
+  function faceList(w, h, d) {
+    return [
+      { N: [0, 0, 1], O: [-w / 2, h, d / 2], U: [1, 0, 0], V: [0, -1, 0], Lu: w, Lv: h, kind: 'logo' },
+      { N: [0, 0, -1], O: [w / 2, h, -d / 2], U: [-1, 0, 0], V: [0, -1, 0], Lu: w, Lv: h, kind: 'logo' },
+      { N: [1, 0, 0], O: [w / 2, h, d / 2], U: [0, 0, -1], V: [0, -1, 0], Lu: d, Lv: h, kind: 'marks' },
+      { N: [-1, 0, 0], O: [-w / 2, h, -d / 2], U: [0, 0, 1], V: [0, -1, 0], Lu: d, Lv: h, kind: 'marks' },
+      { N: [0, 1, 0], O: [-w / 2, h, -d / 2], U: [1, 0, 0], V: [0, 0, 1], Lu: w, Lv: d, kind: 'top' },
+    ];
+  }
+  function kit(w, h, d) { const b = clamp(Math.min(w, h, d) * 0.085, 12, 64); return { b, t: b * 0.4 }; }
+  function battens(len) {
+    const out = [];
+    for (let x = BATTEN.first; ; x += BATTEN.pitch) {
+      const a = clamp((len / 2 - x - BATTEN.bay) / 140, 0, 1);
+      if (a <= 0) break;
+      out.push({ x, a });
+    }
+    return out;
+  }
+  const centerBay = (len, list, b) => (list.length ? lerp(len / 2, list[0].x - b / 2, list[0].a) : len / 2);
+  const outerBay = (len, list, b) => list.reduce((o, { x, a }) => lerp(o, len / 2 - x - b / 2, a), len);
+
+  /* ---------- rendering ---------- */
+  function render() {
+    flat();
+    ctx.clearRect(0, 0, SW, SH);
+    if (SW < 4 || SH < 4) return;
+    ctx.lineJoin = 'round';
+    ctx.lineCap = 'round';
+    const w = cur('w'), h = cur('h'), d = cur('d');
+    const P = projector(view.yaw.x, view.pitch.x);
+    const z = Math.exp(cam.lz.x);
+    const ox = SW / 2 - cam.x.x * z, oy = SH / 2 - cam.y.x * z;
+    const S = (x, y, q) => { const p = P(x, y, q); return [ox + p[0] * z, oy + p[1] * z]; };
+    const L = (v) => { const p = P(v[0], v[1], v[2]); return [p[0] * z, p[1] * z, p[2]]; };
+    const K = kit(w, h, d);
+
+    drawGrid(S, w, h, d, z);
+    drawShadow(S, w, h, d);
+
+    for (const F of faceList(w, h, d)) {
+      const n = L(F.N);
+      if (n[2] <= 0.004) continue;
+      const pu = L(F.U), pv = L(F.V), o = S(F.O[0], F.O[1], F.O[2]);
+      F.m = [pu[0], pu[1], pv[0], pv[1], o[0], o[1]];
+      // Panneau en retrait : décalage écran d’un point à la profondeur t, exprimé dans le repère de la face.
+      const det = pu[0] * pv[1] - pv[0] * pu[1];
+      const sx = -K.t * n[0], sy = -K.t * n[1];
+      const lim = K.b * 0.8;
+      F.du = clamp((sx * pv[1] - pv[0] * sy) / det, -lim, lim);
+      F.dv = clamp((pu[0] * sy - sx * pu[1]) / det, -lim, lim);
+      drawFace(F, K, z);
+    }
+
+    const cs = [];
+    for (const sx of [-1, 1]) for (const sz of [-1, 1]) cs.push(S(sx * w / 2, 0, sz * d / 2), S(sx * w / 2, h, sz * d / 2));
+    polyPath(hull(cs));
+    ink(2);
+
+    drawDims(S, P, w, h, d, cs);
+  }
+
+  function drawGrid(S, w, h, d, z) {
+    const R0 = Math.max(w, d) / 2 + Math.max(w, h, d) * 0.9;
+    let g = 100;
+    while (g * z < 9) g *= 5;
+    const n = Math.ceil(R0 / g), R = n * g;
+    const minor = new Path2D(), major = new Path2D();
+    for (let i = -n; i <= n; i++) {
+      const v = i * g, path = i % 5 === 0 ? major : minor;
+      let a = S(v, 0, -R), b = S(v, 0, R);
+      path.moveTo(a[0], a[1]); path.lineTo(b[0], b[1]);
+      a = S(-R, 0, v); b = S(R, 0, v);
+      path.moveTo(a[0], a[1]); path.lineTo(b[0], b[1]);
+    }
+    ctx.lineWidth = 1;
+    ctx.strokeStyle = pal.grid; ctx.stroke(minor);
+    ctx.strokeStyle = pal.rule; ctx.stroke(major);
+    // fondu du sol en ellipse autour de la caisse
+    const c = S(0, 0, 0), ky = Math.max(0.08, Math.sin(view.pitch.x)), rr = R * z;
+    ctx.save();
+    ctx.globalCompositeOperation = 'destination-in';
+    ctx.translate(c[0], c[1]);
+    ctx.scale(1, ky);
+    const gr = ctx.createRadialGradient(0, 0, 0, 0, 0, rr);
+    gr.addColorStop(0, 'rgba(0,0,0,1)');
+    gr.addColorStop(0.45, 'rgba(0,0,0,0.9)');
+    gr.addColorStop(1, 'rgba(0,0,0,0)');
+    ctx.fillStyle = gr;
+    ctx.fillRect(-c[0] - 2, (-c[1] - 2) / ky, SW + 4, (SH + 4) / ky);
+    ctx.restore();
+  }
+
+  function drawShadow(S, w, h, d) {
+    const pts = [];
+    for (const sx of [-1, 1]) for (const sz of [-1, 1]) {
+      pts.push(S(sx * w / 2, 0, sz * d / 2), S(sx * w / 2 + SHADOW[0] * h, 0, sz * d / 2 + SHADOW[1] * h));
+    }
+    const hp = hull(pts);
+    let x0 = Infinity, x1 = -Infinity, y0 = Infinity, y1 = -Infinity;
+    for (const p of hp) { x0 = Math.min(x0, p[0]); x1 = Math.max(x1, p[0]); y0 = Math.min(y0, p[1]); y1 = Math.max(y1, p[1]); }
+    ctx.save();
+    polyPath(hp);
+    fillPaper();
+    ctx.clip();
+    ctx.beginPath();
+    // hachures calées sur l’écran pour qu’elles ne glissent pas quand la caisse bouge
+    for (let c = Math.floor((x0 + y0) / 5) * 5; c <= x1 + y1; c += 5) { ctx.moveTo(c - y1, y1); ctx.lineTo(c - y0, y0); }
+    ctx.lineWidth = 0.7;
+    ctx.strokeStyle = pal.graphite;
+    ctx.stroke();
+    ctx.restore();
+  }
+
+  function drawFace(F, K, z) {
+    const { m, Lu, Lv, du, dv } = F, b = K.b, iw = Lu - 2 * b, ih = Lv - 2 * b;
+    trace(m, (c) => c.rect(0, 0, Lu, Lv)); fillPaper();
+
+    ctx.save();
+    trace(m, (c) => c.rect(b, b, iw, ih)); ctx.clip();
+    ctx.fillStyle = pal.tone; ctx.fill();
+    trace(m, (c) => c.rect(b + du, b + dv, iw, ih)); fillPaper(); ink(1);
+    trace(m, (c) => { for (const [x, y] of [[b, b], [Lu - b, b], [b, Lv - b], [Lu - b, Lv - b]]) { c.moveTo(x, y); c.lineTo(x + du, y + dv); } });
+    ink(0.9);
+
+    const bu = battens(iw), bv = battens(ih);
+    ctx.save();
+    trace(m, (c) => c.rect(b + du, b + dv, iw, ih)); ctx.clip();
+    const mp = mul(m, [1, 0, 0, 1, b + du, b + dv]);
+    if (F.kind === 'logo') drawLogo(mp, iw, ih, centerBay(iw, bu, b), centerBay(ih, bv, b));
+    else if (F.kind === 'marks') drawMarks(mp, iw, ih, outerBay(iw, bu, b), outerBay(ih, bv, b));
+    ctx.restore();
+    drawBattens(F, K, bu, bv, z);
+    ctx.restore();
+
+    trace(m, (c) => c.rect(b, b, iw, ih)); ink(1.1);
+
+    const p = b, plates = [[0, 0], [Lu - p, 0], [0, Lv - p], [Lu - p, Lv - p]];
+    trace(m, (c) => plates.forEach(([x, y]) => c.rect(x, y, p, p))); fillPaper(); ink(1.1);
+
+    const px = b * z;
+    if (px >= 7) {
+      const r = clamp(px * 0.055, 0.7, 2.2);
+      ctx.beginPath();
+      if (px >= 12) plates.forEach(([x, y]) => { for (const [ax, ay] of [[0.3, 0.3], [0.7, 0.3], [0.3, 0.7], [0.7, 0.7]]) dotAt(ap(m, x + p * ax, y + p * ay), r); });
+      const nails = (len) => { const n = Math.max(0, Math.floor((len - 2 * p) / 300)); return Array.from({ length: n }, (_, i) => p + ((len - 2 * p) * (i + 1)) / (n + 1)); };
+      nails(Lu).forEach((u) => { dotAt(ap(m, u, b / 2), r); dotAt(ap(m, u, Lv - b / 2), r); });
+      nails(Lv).forEach((v) => { dotAt(ap(m, b / 2, v), r); dotAt(ap(m, Lu - b / 2, v), r); });
+      ctx.fillStyle = pal.ink;
+      ctx.fill();
+    }
+    trace(m, (c) => c.rect(0, 0, Lu, Lv)); ink(1.4);
+  }
+
+  function drawBattens(F, K, bu, bv, z) {
+    const { m, Lu, Lv, du, dv } = F, b = K.b, hb = b / 2;
+    const strips = [];
+    bu.forEach(({ x, a }) => [-1, 1].forEach((s) => strips.push({ a, vert: true, r: [Lu / 2 + s * x - hb, b, b, Lv - 2 * b] })));
+    bv.forEach(({ x, a }) => [-1, 1].forEach((s) => strips.push({ a, vert: false, r: [b, Lv / 2 + s * x - hb, Lu - 2 * b, b] })));
+    if (!strips.length) return;
+    for (const st of strips) {
+      const [x, y, w, h] = st.r, pts = [];
+      for (const [qx, qy] of [[x, y], [x + w, y], [x, y + h], [x + w, y + h]]) pts.push(ap(m, qx, qy), ap(m, qx + du, qy + dv));
+      ctx.globalAlpha = st.a;
+      polyPath(hull(pts));
+      ctx.fillStyle = pal.tone; ctx.fill(); ink(1);
+    }
+    for (const st of strips) { ctx.globalAlpha = st.a; trace(m, (c) => c.rect(...st.r)); fillPaper(); ink(1.1); }
+    const px = b * z;
+    if (px >= 7) {
+      const r = clamp(px * 0.055, 0.7, 2.2);
+      for (const st of strips) {
+        const [x, y, w, h] = st.r, len = st.vert ? h : w, n = Math.floor(len / 300);
+        ctx.globalAlpha = st.a;
+        ctx.beginPath();
+        for (let i = 1; i <= n; i++) { const t = i / (n + 1); dotAt(st.vert ? ap(m, x + hb, y + h * t) : ap(m, x + w * t, y + hb), r); }
+        ctx.fillStyle = pal.ink; ctx.fill();
+      }
+    }
+    ctx.globalAlpha = 1;
+  }
+
+  function outline(str, m, align) {
+    local(m);
+    ctx.textAlign = align;
+    ctx.textBaseline = 'alphabetic';
+    ctx.fillStyle = pal.paper; ctx.fillText(str, 0, 0);
+    ctx.lineWidth = 0.85 / scaleOf(m);
+    ctx.strokeStyle = pal.ink; ctx.strokeText(str, 0, 0);
+    flat();
+  }
+
+  // Logo dans ses propres unités : x ∈ [-100, 100], y ∈ [-72, 116].
+  function drawLogo(mp, pw, ph, hx, hy) {
+    const s = Math.min((hx * 2 * 0.64) / 200, (hy * 2 * 0.62) / 188);
+    const ml = mul(mp, [s, 0, 0, s, pw / 2, ph / 2 - hy * 0.04 - 22 * s]);
+    const u = scaleOf(ml);
+    if (u * 200 < 16) return;
+    trace(ml, (c) => { c.moveTo(-100, 22); c.lineTo(0, -40); c.lineTo(100, 22); c.lineTo(0, 84); c.closePath(); }); fillPaper(); ink(1);
+    trace(ml, (c) => { c.moveTo(-100, 22); c.lineTo(-100, 30); c.lineTo(0, 92); c.lineTo(100, 30); c.lineTo(100, 22); c.moveTo(0, 84); c.lineTo(0, 92); }); ink(1);
+    trace(ml, (c) => { c.moveTo(-40, -58); c.lineTo(-24, -72); c.lineTo(50, -72); c.lineTo(50, -8); c.lineTo(34, 6); c.lineTo(-40, 6); c.closePath(); }); fillPaper(); ink(1.1);
+    trace(ml, (c) => { c.moveTo(-40, -58); c.lineTo(34, -58); c.lineTo(34, 6); c.moveTo(34, -58); c.lineTo(50, -72); }); ink(1);
+    if (u * 30 < 6) return;
+
+    ctx.font = `800 44px ${SERIF}`;
+    outline('CAISSE', mul(ml, [66 / ctx.measureText('CAISSE').width, 0, 0, 1, -3, -10.5]), 'center');
+    ctx.font = `800 37px ${SERIF}`;
+    let k = Math.min(0.85, 56 / ctx.measureText('FRA').width);
+    outline('FRA', mul(ml, [k, 0.62 * k, 0, 1, -70, 34.6]), 'left');
+    k = Math.min(0.85, 56 / ctx.measureText('CHE').width);
+    outline('CHE', mul(ml, [k, -0.62 * k, 0, 1, 14, 69.3]), 'left');
+    ctx.font = `800 50px ${SERIF}`;
+    outline('Î', mul(ml, [0.7, 0, 0, 1, 0, 76]), 'center');
+
+    ctx.font = `700 17px ${SANS}`;
+    local(mul(ml, [1, 0, 0, 1, 0, 116]));
+    ctx.textAlign = 'center';
+    ctx.fillStyle = pal.ink;
+    ctx.fillText('by LIRAA', 0, 0);
+    flat();
+  }
+
+  // Pictogrammes de manutention (ISO 780) dans un carré unité.
+  const SYMBOLS = {
+    up(c) {
+      for (const x of [0.32, 0.68]) {
+        c.moveTo(x - 0.045, 0.8); c.lineTo(x - 0.045, 0.34); c.lineTo(x - 0.14, 0.34); c.lineTo(x, 0.06);
+        c.lineTo(x + 0.14, 0.34); c.lineTo(x + 0.045, 0.34); c.lineTo(x + 0.045, 0.8); c.closePath();
+      }
+      c.rect(0.12, 0.88, 0.76, 0.07);
+    },
+    glass(c) {
+      c.moveTo(0.26, 0.06); c.lineTo(0.74, 0.06);
+      c.bezierCurveTo(0.77, 0.36, 0.64, 0.5, 0.53, 0.52);
+      c.lineTo(0.53, 0.84); c.lineTo(0.7, 0.9); c.lineTo(0.3, 0.9); c.lineTo(0.47, 0.84); c.lineTo(0.47, 0.52);
+      c.bezierCurveTo(0.36, 0.5, 0.23, 0.36, 0.26, 0.06); c.closePath();
+      c.moveTo(0.43, 0.06); c.lineTo(0.51, 0.17); c.lineTo(0.44, 0.25); c.lineTo(0.53, 0.36);
+    },
+    umbrella(c) {
+      const cx = 0.5, cy = 0.46, r = 0.42, n = 4, sw = (2 * r) / n;
+      c.moveTo(cx - r, cy);
+      c.arc(cx, cy, r, Math.PI, Math.PI * 2);
+      for (let i = n - 1; i >= 0; i--) c.arc(cx - r + sw * (i + 0.5), cy, sw / 2, 0, Math.PI, true);
+      c.moveTo(cx, cy - r); c.lineTo(cx, cy - r - 0.05);
+      c.moveTo(cx, cy); c.lineTo(cx, 0.84);
+      c.arc(cx - 0.07, 0.84, 0.07, 0, Math.PI, false);
+    },
+  };
+
+  function drawMarks(mp, pw, ph, limX, limY) {
+    const row = ph / pw < 0.62;
+    const mx = Math.min(pw, 1000) * 0.07, my = Math.min(ph, 1000) * 0.07;
+    let S = row ? Math.min(ph * 0.46, pw * 0.12) : Math.min(pw * 0.24, ph * 0.14);
+    S = Math.min(S, CAP, (limX - mx) / (row ? 3.3 : 1), (limY - my) / (row ? 1 : 3.1));
+    if (!(S > 0) || S * scaleOf(mp) < 8) return;
+    const put = (name, x, y, s) => { trace(mul(mp, [s, 0, 0, s, x, y]), SYMBOLS[name]); ink(1); };
+    const yb = ph - my;
+    put('up', pw - mx - S, my, S);
+    if (row) {
+      put('glass', mx, yb - S, S);
+      put('umbrella', mx + S * 1.2, yb - S, S);
+      put('up', mx + S * 2.5, yb - S * 0.8, S * 0.8);
+    } else {
+      put('up', mx + S * 0.1, yb - S * 0.8, S * 0.8);
+      put('umbrella', mx, yb - S * 1.95, S);
+      put('glass', mx, yb - S * 3.1, S);
+    }
+  }
+
+  function drawDims(S, P, w, h, d, cs) {
+    let cx = 0, cy = 0;
+    cs.forEach((p) => { cx += p[0]; cy += p[1]; });
+    cx /= cs.length; cy /= cs.length;
+    const zs = P(0, 0, 1)[2] >= 0 ? 1 : -1;
+    const xs = P(1, 0, 0)[2] >= 0 ? 1 : -1;
+    dim(S(-w / 2, 0, zs * d / 2), S(w / 2, 0, zs * d / 2), w, cx, cy);
+    dim(S(xs * w / 2, 0, -d / 2), S(xs * w / 2, 0, d / 2), d, cx, cy);
+    let best = null;
+    for (const sx of [-1, 1]) for (const sz of [-1, 1]) { const a = S(sx * w / 2, 0, sz * d / 2); if (!best || a[0] < best.a[0]) best = { a, sx, sz }; }
+    dim(best.a, S(best.sx * w / 2, h, best.sz * d / 2), h, cx, cy);
+  }
+
+  function dim(a, b, value, cx, cy) {
+    const ex = b[0] - a[0], ey = b[1] - a[1], L = Math.hypot(ex, ey);
+    if (L < 18) return;
+    const ux = ex / L, uy = ey / L;
+    let nx = -uy, ny = ux;
+    const mx = (a[0] + b[0]) / 2, my = (a[1] + b[1]) / 2;
+    if ((mx - cx) * nx + (my - cy) * ny < 0) { nx = -nx; ny = -ny; }
+    const off = 24, gap = 6, over = 6, ext = 5;
+    ctx.globalAlpha = clamp((L - 18) / 36, 0, 1);
+    ctx.beginPath();
+    for (const p of [a, b]) { ctx.moveTo(p[0] + nx * gap, p[1] + ny * gap); ctx.lineTo(p[0] + nx * (off + over), p[1] + ny * (off + over)); }
+    ctx.lineWidth = 0.75; ctx.strokeStyle = pal.graphite; ctx.stroke();
+    const A = [a[0] + nx * off, a[1] + ny * off], B = [b[0] + nx * off, b[1] + ny * off];
+    const tx = (ux + nx) * 3.6, ty = (uy + ny) * 3.6;
+    ctx.beginPath();
+    ctx.moveTo(A[0] - ux * ext, A[1] - uy * ext); ctx.lineTo(B[0] + ux * ext, B[1] + uy * ext);
+    for (const p of [A, B]) { ctx.moveTo(p[0] - tx, p[1] - ty); ctx.lineTo(p[0] + tx, p[1] + ty); }
+    ctx.lineWidth = 1; ctx.strokeStyle = pal.ink; ctx.stroke();
+    let ang = Math.atan2(uy, ux);
+    if (ang > Math.PI / 2) ang -= Math.PI; else if (ang < -Math.PI / 2) ang += Math.PI;
+    const txt = nf0.format(value);
+    ctx.save();
+    ctx.translate(mx + nx * (off + 11), my + ny * (off + 11));
+    ctx.rotate(ang);
+    ctx.font = `500 11px ${MONO}`;
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    const tw = ctx.measureText(txt).width;
+    ctx.fillStyle = pal.paper; ctx.fillRect(-tw / 2 - 4, -8, tw + 8, 16);
+    ctx.fillStyle = pal.ink; ctx.fillText(txt, 0, 0.5);
+    ctx.restore();
+    ctx.globalAlpha = 1;
+  }
+
+  /* ---------- caméra : se cale sur les échelles de dessin, avec hystérésis ---------- */
+  function fit(snap) {
+    if (SW < 4 || SH < 4) return false;
+    const w = tgt('w'), h = tgt('h'), d = tgt('d');
+    const P = projector(view.yaw.x, view.pitch.x);
+    let x0 = Infinity, x1 = -Infinity, y0 = Infinity, y1 = -Infinity;
+    const add = (x, y, q) => { const p = P(x, y, q); x0 = Math.min(x0, p[0]); x1 = Math.max(x1, p[0]); y0 = Math.min(y0, p[1]); y1 = Math.max(y1, p[1]); };
+    for (const sx of [-1, 1]) for (const sz of [-1, 1]) {
+      add(sx * w / 2, 0, sz * d / 2); add(sx * w / 2, h, sz * d / 2);
+      add(sx * w / 2 + SHADOW[0] * h, 0, sz * d / 2 + SHADOW[1] * h);
+    }
+    const mx = SW < 520 ? 46 : 78, my = SH < 480 ? 46 : 70;
+    const zNeed = Math.min(Math.max(60, SW - 2 * mx) / (x1 - x0), Math.max(60, SH - 2 * my) / (y1 - y0));
+    const sheet = SW >= SH ? Math.min(SW / 420, SH / 297) : Math.min(SW / 297, SH / 420);
+    const nMin = sheet / zNeed, fill = nMin / cam.N;
+    if (snap || fill > 1 || fill < 0.42) cam.N = LADDER.find((n) => n >= nMin / 0.86) || LADDER[LADDER.length - 1];
+    cam.lz.t = Math.log(Math.min(sheet / cam.N, zNeed));
+    cam.x.t = (x0 + x1) / 2;
+    cam.y.t = (y0 + y1) / 2;
+    if (snap) [cam.lz, cam.x, cam.y].forEach((s) => { s.x = s.t; s.v = 0; });
+    return true;
+  }
+
+  const allSprings = () => [dims.w, dims.h, dims.d, view.yaw, view.pitch, cam.lz, cam.x, cam.y];
+  function kick() { if (!raf) { last = performance.now(); raf = requestAnimationFrame(tick); } }
+  function tick(now) {
+    raf = 0;
+    const dt = clamp((now - last) / 1000, 0.001, 0.05);
+    last = now;
+    if (!drag && view.vel) {
+      view.yaw.t += view.vel * dt; view.yaw.x = view.yaw.t;
+      view.vel *= Math.exp(-3.4 * dt);
+      if (Math.abs(view.vel) < 0.02) view.vel = 0;
+    }
+    fit(false);
+    if (RM.matches) {
+      allSprings().forEach((s) => { s.x = s.t; s.v = 0; });
+    } else {
+      const n = Math.ceil(dt * 240), h = dt / n;
+      for (let i = 0; i < n; i++) {
+        KEYS.forEach((k) => step(dims[k], h, 110, 0.7));
+        step(view.yaw, h, 70, 1); step(view.pitch, h, 70, 1);
+        step(cam.lz, h, 16, 1); step(cam.x, h, 26, 1); step(cam.y, h, 26, 1);
+      }
+    }
+    const z = Math.exp(cam.lz.x);
+    const rest = !drag && !view.vel
+      && KEYS.every((k) => near(dims[k], 2e-4)) && near(view.yaw, 2e-4) && near(view.pitch, 2e-4) && near(cam.lz, 3e-4)
+      && Math.abs(cam.x.t - cam.x.x) * z < 0.1 && Math.abs(cam.y.t - cam.y.x) * z < 0.1
+      && Math.abs(cam.x.v) * z < 1 && Math.abs(cam.y.v) * z < 1;
+    if (rest) allSprings().forEach((s) => { s.x = s.t; s.v = 0; });
+    render();
+    if (!rest) raf = requestAnimationFrame(tick);
+  }
+
+  /* ---------- controls ---------- */
+  function updateAria() {
+    canvas.setAttribute('aria-label', `Caisse à cadre ${KEYS.map((k) => nf0.format(Math.round(tgt(k)))).join(' × ')} mm, vue axonométrique`);
+  }
+  function changed() { updateAria(); kick(); }
+  const setTarget = (k, v) => { dims[k].t = Math.log(clamp(v, MIN, MAX)); };
+  function setValue(k, v) { inputs[k].value = v; notes[k].textContent = ''; setTarget(k, v); }
+  function commit(k) {
+    const v = parseFloat(inputs[k].value);
+    setValue(k, Number.isFinite(v) ? clamp(Math.round(v), MIN, MAX) : Math.round(tgt(k)));
+    changed();
+  }
+
+  KEYS.forEach((k) => {
+    const inp = inputs[k];
+    inp.addEventListener('input', () => {
+      const v = parseFloat(inp.value);
+      if (!Number.isFinite(v)) { notes[k].textContent = ''; return; }
+      // une valeur sous le minimum n’est pas appliquée tant que la saisie est en cours
+      if (v < MIN) { notes[k].textContent = `De ${MIN} à ${nf0.format(MAX)} mm`; return; }
+      notes[k].textContent = v > MAX ? `Maximum ${nf0.format(MAX)} mm` : '';
+      setTarget(k, v);
+      changed();
+    });
+    inp.addEventListener('change', () => commit(k));
+    inp.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') { e.preventDefault(); commit(k); inp.select(); return; }
+      if (e.key !== 'ArrowUp' && e.key !== 'ArrowDown') return;
+      e.preventDefault();
+      const base = Number.isFinite(parseFloat(inp.value)) ? parseFloat(inp.value) : tgt(k);
+      const st = e.shiftKey ? 100 : 10;
+      setValue(k, clamp(Math.round((base + (e.key === 'ArrowUp' ? st : -st)) / st) * st, MIN, MAX));
+      changed();
+    });
+  });
+
+  document.querySelectorAll('.field-label').forEach((lab) => {
+    const k = lab.closest('.field').dataset.key;
+    let s = null, suppress = false;
+    lab.addEventListener('pointerdown', (e) => {
+      if (e.button !== 0) return;
+      s = { x: e.clientX, v: tgt(k), moved: false };
+      lab.setPointerCapture(e.pointerId);
+    });
+    lab.addEventListener('pointermove', (e) => {
+      if (!s) return;
+      const dx = e.clientX - s.x;
+      if (!s.moved && Math.abs(dx) < 4) return;
+      s.moved = true;
+      setValue(k, clamp(Math.round((s.v + dx * (e.shiftKey ? 20 : 4)) / 10) * 10, MIN, MAX));
+      changed();
+    });
+    const end = () => { if (s && s.moved) suppress = true; s = null; };
+    lab.addEventListener('pointerup', end);
+    lab.addEventListener('pointercancel', end);
+    lab.addEventListener('click', (e) => { if (suppress) { e.preventDefault(); suppress = false; } });
+  });
+
+  $('#dims').addEventListener('submit', (e) => e.preventDefault());
+
+  function resetView() {
+    const wrap = (a) => a - Math.round(a / (2 * Math.PI)) * 2 * Math.PI;
+    view.vel = 0;
+    view.yaw.x = VIEW0.yaw + wrap(view.yaw.x - VIEW0.yaw);
+    view.yaw.t = VIEW0.yaw;
+    view.pitch.t = VIEW0.pitch;
+    kick();
+  }
+  canvas.addEventListener('dblclick', resetView);
+
+  canvas.addEventListener('pointerdown', (e) => {
+    if (e.button !== 0) return;
+    drag = { id: e.pointerId, x: e.clientX, y: e.clientY, t: performance.now() };
+    view.vel = 0;
+    canvas.setPointerCapture(e.pointerId);
+    canvas.classList.add('is-dragging');
+    kick();
+  });
+  canvas.addEventListener('pointermove', (e) => {
+    if (!drag || e.pointerId !== drag.id) return;
+    const now = performance.now(), dt = Math.max(1, now - drag.t) / 1000;
+    const dyaw = (e.clientX - drag.x) * 0.0085;
+    view.yaw.t += dyaw; view.yaw.x = view.yaw.t; view.yaw.v = 0;
+    view.pitch.t = clamp(view.pitch.t + (e.clientY - drag.y) * 0.005, 0.1, 1.15);
+    view.pitch.x = view.pitch.t; view.pitch.v = 0;
+    view.vel = view.vel * 0.3 + (dyaw / dt) * 0.7;
+    drag.x = e.clientX; drag.y = e.clientY; drag.t = now;
+    kick();
+  });
+  const endDrag = () => {
+    if (!drag) return;
+    view.vel = performance.now() - drag.t > 90 ? 0 : clamp(view.vel, -6, 6);
+    drag = null;
+    canvas.classList.remove('is-dragging');
+    kick();
+  };
+  canvas.addEventListener('pointerup', endDrag);
+  canvas.addEventListener('pointercancel', endDrag);
+  canvas.addEventListener('keydown', (e) => {
+    const q = Math.PI / 12;
+    if (e.key === 'ArrowLeft') view.yaw.t -= q;
+    else if (e.key === 'ArrowRight') view.yaw.t += q;
+    else if (e.key === 'ArrowUp') view.pitch.t = clamp(view.pitch.t + 0.08, 0.1, 1.15);
+    else if (e.key === 'ArrowDown') view.pitch.t = clamp(view.pitch.t - 0.08, 0.1, 1.15);
+    else if (e.key === 'Home' || e.key === '0') { resetView(); }
+    else return;
+    e.preventDefault();
+    kick();
+  });
+
+  /* ---------- démarrage ---------- */
+  document.documentElement.lang = 'fr';
+  readPalette();
+  updateAria();
+  new ResizeObserver(() => {
+    const r = stage.getBoundingClientRect();
+    SW = r.width; SH = r.height;
+    dpr = Math.min(window.devicePixelRatio || 1, 2.5);
+    canvas.width = Math.max(1, Math.round(SW * dpr));
+    canvas.height = Math.max(1, Math.round(SH * dpr));
+    if (fit(!booted)) booted = true;
+    render();
+    kick();
+  }).observe(stage);
+
+  const onTheme = () => { readPalette(); kick(); };
+  matchMedia('(prefers-color-scheme: dark)').addEventListener('change', onTheme);
+  new MutationObserver(onTheme).observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] });
+  if (document.fonts) {
+    Promise.all([
+      document.fonts.load(`800 44px ${SERIF}`, 'CAISSE FRAÎCHE'),
+      document.fonts.load(`700 17px ${SANS}`, 'by LIRAA'),
+      document.fonts.load(`500 11px ${MONO}`, '0123456789'),
+    ]).then(kick, kick);
+  }
+})();
+</script>
+</body>
+</html>
