@@ -3,6 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="color-scheme" content="light dark">
 <title>CASSE FRESH</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -99,6 +100,10 @@ button:focus-visible{outline:2px solid var(--ink);outline-offset:2px}
 .cta:hover{opacity:.88}
 .ghost{background:transparent}
 .ghost:hover{background:var(--paper-2)}
+.duckfin{display:inline-flex;align-items:center;gap:6px;margin-left:4px}
+.duckfin[hidden]{display:none}
+.duckfin button{width:26px;height:26px;padding:0;border:1.5px solid var(--rule);border-radius:50%;cursor:pointer}
+.duckfin button[aria-checked="true"]{outline:2px solid var(--ink);outline-offset:2px}
 .bar .bar-cta{flex:none;width:clamp(200px,17vw,300px);margin:0;align-self:flex-end}
 .hint{margin:-8px 0 18px;color:var(--graphite);font-size:13px}
 .corners{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}
@@ -208,6 +213,7 @@ button:focus-visible{outline:2px solid var(--ink);outline-offset:2px}
             <button type="button" role="radio" data-set="crate.item" data-value="sculpture">Sculpture</button>
             <button type="button" role="radio" data-set="crate.item" data-value="painting">Tableau</button>
             <button type="button" role="radio" data-set="crate.item" data-value="other">Autre</button>
+            <span class="duckfin" data-duckfin="crate" role="radiogroup" aria-label="Couleur du canard"><button type="button" role="radio" data-set="crate.duck" data-value="metal" aria-label="Canard argenté" style="background:linear-gradient(135deg,#FFFFFF,#9EA2A8)"></button><button type="button" role="radio" data-set="crate.duck" data-value="yellow" aria-label="Canard jaune" style="background:linear-gradient(135deg,#FFF3A0,#F2B600)"></button></span>
           </div>
         </div>
         <label class="line"><span>Poids de l’objet</span><input id="crate-weight" data-input="crate.weight" type="number" inputmode="decimal" min="0" placeholder="—"><span class="u">kg</span></label>
@@ -261,8 +267,8 @@ button:focus-visible{outline:2px solid var(--ink);outline-offset:2px}
         <div class="group">
           <div class="chips" role="radiogroup" aria-label="Objet exposé">
             <button type="button" role="radio" data-set="stand.item" data-value="sculpture">Sculpture</button>
-            <button type="button" role="radio" data-set="stand.item" data-value="painting">Tableau</button>
             <button type="button" role="radio" data-set="stand.item" data-value="other">Autre</button>
+            <span class="duckfin" data-duckfin="stand" role="radiogroup" aria-label="Couleur du canard"><button type="button" role="radio" data-set="stand.duck" data-value="metal" aria-label="Canard chromé" style="background:linear-gradient(135deg,#FFFFFF,#4E5157)"></button><button type="button" role="radio" data-set="stand.duck" data-value="yellow" aria-label="Canard jaune" style="background:linear-gradient(135deg,#FFF3A0,#F2B600)"></button></span>
           </div>
         </div>
         <label class="line"><span>Poids de l’objet</span><input id="stand-weight" data-input="stand.weight" type="number" inputmode="decimal" min="0" placeholder="—"><span class="u">kg</span></label>
@@ -342,7 +348,8 @@ button:focus-visible{outline:2px solid var(--ink);outline-offset:2px}
   const SERIF = '"Playfair Display", Didot, "Bodoni 72", Georgia, serif';
   const SANS = 'Archivo, "Helvetica Neue", Arial, sans-serif';
   const MONO = '"IBM Plex Mono", ui-monospace, Menlo, monospace';
-  const ITEM = { crate: { sculpture: 'Sculpture (canard gonflable)', painting: 'Tableau', other: 'Autre objet' }, stand: { sculpture: 'Sculpture (canard chromé)', painting: 'Tableau', other: 'Autre objet' } };
+  const ITEM = { crate: { sculpture: 'Sculpture', painting: 'Tableau', other: 'Autre objet' }, stand: { sculpture: 'Sculpture', other: 'Autre objet' } };
+  const DUCK_NAME = { crate: { metal: 'canard gonflable argenté', yellow: 'canard gonflable jaune' }, stand: { metal: 'canard chromé', yellow: 'canard gonflable jaune' } };
   // Caisse à tableau : le cube s'aplatit à ce format quand on choisit « Tableau ».
   const PAINTING_DIMS = { w: 1000, h: 800, d: 180 };
   const RED = '#E3301F';
@@ -362,15 +369,15 @@ button:focus-visible{outline:2px solid var(--ink);outline-offset:2px}
   /* ---------- state ---------- */
   const st = {
     view: 'home', kind: null, step: 1, part: 'body', hover: null,
-    crate: { item: 'sculpture', material: 'plywood', fragile: false, reinforce: false, scan: false, weight: '' },
-    stand: { corner: 1, body: { mat: 'HPL', i: 0 }, lid: { mat: 'HPL', i: 0 }, lidType: 'standard', item: 'sculpture', weight: '', stable: true, reinforce: false, fixings: false, cable: false, comment: '' },
+    crate: { item: 'sculpture', duck: 'metal', material: 'plywood', fragile: false, reinforce: false, scan: false, weight: '' },
+    stand: { corner: 1, body: { mat: 'HPL', i: 0 }, lid: { mat: 'HPL', i: 0 }, lidType: 'standard', item: 'sculpture', duck: 'metal', weight: '', stable: true, reinforce: false, fixings: false, cable: false, comment: '' },
   };
 
   function makeObj(kind, dims) {
     const o = {
       kind, dims: {}, zLock: 0, item: 'sculpture', itemWant: 'sculpture', show: false, bb: null,
       lz: spr(Math.log(0.4), 3e-4), cx: spr(0, 0.05), cy: spr(0, 0.05), ax: spr(0, 0.05), ay: spr(0, 0.05),
-      op: spr(1), hov: spr(1), lift: spr(0, 0.05), back: spr(0, 0.05), duck: spr(0), reinf: spr(0), fragile: spr(0), cotton: spr(0), cable: spr(0), corner: spr(0, 0.05),
+      op: spr(1), hov: spr(1), lift: spr(0, 0.05), back: spr(0, 0.05), duck: spr(0), reinf: spr(0), fragile: spr(0), cotton: spr(0), cable: spr(0), unstable: spr(0), fix: spr(0), scan: spr(0), corner: spr(0, 0.05),
     };
     KEYS.forEach((k) => { const t = Math.log(dims[k]); o.dims[k] = spr(RM.matches ? t : t + Math.log(0.35), 2e-4); o.dims[k].t = t; });
     o.cv = document.createElement('canvas');
@@ -390,6 +397,7 @@ button:focus-visible{outline:2px solid var(--ink);outline-offset:2px}
   const tgt = (o, k) => Math.exp(o.dims[k].t);
   const act = () => (st.kind === 'stand' ? stand : crate);
 
+  let clock = 0;
   let SW = 0, SH = 0, dpr = 1, pal = {}, raf = 0, last = 0, drag = null, panelW = 400, barH = 100;
 
   function readPalette() {
@@ -475,7 +483,6 @@ button:focus-visible{outline:2px solid var(--ink);outline-offset:2px}
     return g.s * 0.45;
   }
   function standItemHeight(o, w, d) {
-    if (o.itemWant === 'painting') return Math.min(w * 0.85, 1000) * 0.78;
     if (o.itemWant === 'other') return clamp(Math.min(w, d) * 1.2, 150, 800);
     return standGrid(w, d).s * 0.95;
   }
@@ -610,7 +617,35 @@ button:focus-visible{outline:2px solid var(--ink);outline-offset:2px}
     for (const sx of [-1, 1]) for (const sz of [-1, 1]) wc.push(S(sx * w / 2, 0, sz * d / 2), S(sx * w / 2, hw, sz * d / 2));
     polyPath(hull(wc));
     ink(2);
+    if (o.scan.x > 0.01 && lift > 0.5 && o.duck.x > 0.5) drawScan(o, S, w, h, d, hw, th);
     if (!behind) drawLid(o, S, L, K, z, w, h, d, tl, off);
+  }
+
+  // Scan 3D : un plan laser rouge balaie la partie de l'objet qui dépasse de la caisse.
+  function drawScan(o, S, w, h, d, hw, th) {
+    const prot = crateProtrusion(o, w, h, d), a = Math.min(1, o.scan.x);
+    const y = hw + 12 + Math.max(10, prot - 12) * (0.5 + 0.5 * Math.sin(clock * 2.2));
+    const ix = w / 2 - th, iz = d / 2 - th, e = 30;
+    const q = [S(-ix - e, y, -iz - e), S(ix + e, y, -iz - e), S(ix + e, y, iz + e), S(-ix - e, y, iz + e)];
+    const ga = ctx.globalAlpha;
+    ctx.globalAlpha = ga * a;
+    polyPath(q);
+    ctx.fillStyle = 'rgba(227,48,31,0.12)'; ctx.fill();
+    ink(1.4, pal.accent);
+    ctx.beginPath();
+    for (let i = 1; i < 4; i++) {
+      const t = i / 4;
+      const p0 = S(-ix - e + (2 * ix + 2 * e) * t, y, -iz - e), p1 = S(-ix - e + (2 * ix + 2 * e) * t, y, iz + e);
+      const p2 = S(-ix - e, y, -iz - e + (2 * iz + 2 * e) * t), p3 = S(ix + e, y, -iz - e + (2 * iz + 2 * e) * t);
+      ctx.moveTo(p0[0], p0[1]); ctx.lineTo(p1[0], p1[1]); ctx.moveTo(p2[0], p2[1]); ctx.lineTo(p3[0], p3[1]);
+    }
+    ctx.globalAlpha = ga * a * 0.45;
+    ink(0.8, pal.accent);
+    ctx.globalAlpha = ga * a;
+    const r = q.reduce((m, p) => (p[0] > m[0] ? p : m), q[0]);
+    ctx.font = `500 11px ${MONO}`; ctx.fillStyle = pal.accent; ctx.textAlign = 'left'; ctx.textBaseline = 'middle';
+    ctx.fillText('SCAN 3D', r[0] + 8, r[1]);
+    ctx.globalAlpha = ga;
   }
 
   function drawCrateItems(o, S, L, P, z, w, h, d) {
@@ -624,7 +659,7 @@ button:focus-visible{outline:2px solid var(--ink);outline-offset:2px}
         const k = Math.max(0, ag.a.x), s = g.s * grow * k, x = (ag.u.x - 0.5) * g.iw, zz = (ag.v.x - 0.5) * g.id;
         centers.push([x, zz]);
         if (a < 0.02 || s < 4) continue;
-        figs.push({ kind: 'duck', mat: 'silver', pos: [x, baseY(g.s), zz], yaw: ag.yaw, s, q: 1, alpha: fade * Math.min(1, k * 3) });
+        figs.push({ kind: 'duck', mat: st.crate.duck === 'yellow' ? 'yellow' : 'silver', pos: [x, baseY(g.s), zz], yaw: ag.yaw, s, q: 1, alpha: fade * Math.min(1, k * 3) });
       }
       avoid = (x, zz) => centers.some(([cx, cz]) => Math.hypot(x - cx, (zz - cz) * 1.3) < g.s * 0.5);
     } else if (o.item === 'painting') {
@@ -950,44 +985,105 @@ button:focus-visible{outline:2px solid var(--ink);outline-offset:2px}
     return hl;
   }
 
+  // Renfort : raidisseurs intérieurs en pointillés rouges, comme des arêtes cachées sur un plan.
+  function drawStandRibs(S, P, w, h, d, r, tl, a) {
+    if (a < 0.01) return;
+    const hb = h - tl, inset = Math.min(40, Math.min(w, d) * 0.08);
+    const planes = [
+      { n: [0, 0, 1], pt: (u, y) => [u, y, d / 2], u0: -w / 2 + r + inset, u1: w / 2 - r - inset },
+      { n: [0, 0, -1], pt: (u, y) => [u, y, -d / 2], u0: -w / 2 + r + inset, u1: w / 2 - r - inset },
+      { n: [1, 0, 0], pt: (u, y) => [w / 2, y, u], u0: -d / 2 + r + inset, u1: d / 2 - r - inset },
+      { n: [-1, 0, 0], pt: (u, y) => [-w / 2, y, u], u0: -d / 2 + r + inset, u1: d / 2 - r - inset },
+    ];
+    const ga = ctx.globalAlpha;
+    ctx.globalAlpha = ga * Math.min(1, a);
+    ctx.setLineDash([5, 4]);
+    for (const pl of planes) {
+      if (P(pl.n[0], pl.n[1], pl.n[2])[2] <= 0.02 || pl.u1 - pl.u0 < 20) continue;
+      const q = (u, y) => S(...pl.pt(u, y)), y0 = inset, y1 = hb - inset;
+      const n = Math.max(1, Math.floor((y1 - y0) / 320)), yb = y0 + (y1 - y0) / (n + 1);
+      polyPath([q(pl.u0, y0), q(pl.u1, y0), q(pl.u1, y1), q(pl.u0, y1)]);
+      for (let i = 1; i <= n; i++) { const y = y0 + ((y1 - y0) * i) / (n + 1), p0 = q(pl.u0, y), p1 = q(pl.u1, y); ctx.moveTo(p0[0], p0[1]); ctx.lineTo(p1[0], p1[1]); }
+      const c0 = q(pl.u0, y0), c1 = q(pl.u1, yb), c2 = q(pl.u1, y0), c3 = q(pl.u0, yb);
+      ctx.moveTo(c0[0], c0[1]); ctx.lineTo(c1[0], c1[1]); ctx.moveTo(c2[0], c2[1]); ctx.lineTo(c3[0], c3[1]);
+      ink(1.2, pal.accent);
+    }
+    ctx.setLineDash([]);
+    ctx.globalAlpha = ga;
+  }
+
+  // Passage de câble : il sort du trou du plateau et ressort en bas du socle jusqu'à une prise.
+  function drawStandCable(o, S, z, w, h, d, r, yT, hole) {
+    const t = Math.min(1, o.cable.x), lw = clamp(12 * z, 1.5, 5);
+    const bez = (p0, p1, p2, p3, n) => Array.from({ length: n + 1 }, (_, i) => {
+      const u = i / n, v = 1 - u;
+      return [0, 1, 2].map((k) => v * v * v * p0[k] + 3 * v * v * u * p1[k] + 3 * v * u * u * p2[k] + u * u * u * p3[k]);
+    });
+    const stroke = (pts) => {
+      const m = Math.max(1, Math.round((pts.length - 1) * t)), sp = pts.slice(0, m + 1).map((q) => S(q[0], q[1], q[2]));
+      ctx.beginPath(); sp.forEach((q, i) => (i ? ctx.lineTo(q[0], q[1]) : ctx.moveTo(q[0], q[1])));
+      ctx.lineCap = 'round'; ctx.lineJoin = 'round';
+      ink(lw, pal.ink);
+      return sp;
+    };
+    // bout libre : il sort du trou, fait une boucle et retombe sur le plateau, côté avant
+    const end = [w / 2 - Math.max(r, 30) - 40, yT + 4, d / 2 - Math.max(r, 30) - 50];
+    stroke(bez(hole, [hole[0], yT + 200, hole[2]], [end[0] + 60, yT + 160, end[2] - 40], end, 18));
+    const x0 = w / 2 - Math.max(r, 30) - 40, p0 = [x0, 35, d / 2];
+    const low = stroke(bez(p0, [x0, 4, d / 2 + 90], [x0 + 160, 0, d / 2 + 240], [x0 + 380, 0, d / 2 + 280], 18));
+    if (t > 0.98 && low.length > 2) {
+      const a = low[low.length - 2], b = low[low.length - 1], ang = Math.atan2(b[1] - a[1], b[0] - a[0]), k = lw * 2.6;
+      ctx.save(); ctx.translate(b[0], b[1]); ctx.rotate(ang);
+      ctx.fillStyle = pal.ink; ctx.fillRect(0, -k * 0.55, k * 1.6, k * 1.1);
+      ctx.beginPath(); ctx.moveTo(k * 1.6, -k * 0.25); ctx.lineTo(k * 2.3, -k * 0.25); ctx.moveTo(k * 1.6, k * 0.25); ctx.lineTo(k * 2.3, k * 0.25);
+      ink(Math.max(1, lw * 0.45), pal.ink);
+      ctx.restore();
+    }
+  }
+
   function drawStand(o, S, L, P, z, w, h, d) {
     const tl = clamp(h * 0.035, 18, 40), lift = Math.max(0, o.lift.x);
     const r = clamp(o.corner.x, 0, Math.min(w, d) / 2 - 0.5);
     const { pts, flags } = roundRect(w, d, r);
     const body = o.col.body.cur, lid = o.col.lid.cur;
     o.hitBody = extrude(pts, flags, 0, h - tl, body, S, P);
+    drawStandRibs(S, P, w, h, d, r, tl, o.reinf.x);
     o.hitLid = extrude(pts, flags, h - tl + lift, h + lift, lid, S, P);
     const yT = h + lift;
+    const hole = [w / 2 - Math.max(r, 30) - 50, yT, -(d / 2 - Math.max(r, 30) - 50)];
     if (o.cable.x > 0.02) {
       const pu = L([1, 0, 0]), pv = L([0, 0, 1]), c0 = S(0, yT, 0);
-      const rr = Math.min(w, d) * 0.045 * o.cable.x, hx = w / 2 - Math.max(r, rr) - rr * 1.8, hz = -(d / 2 - Math.max(r, rr) - rr * 1.8);
-      trace([pu[0], pu[1], pv[0], pv[1], c0[0], c0[1]], (c) => { c.moveTo(hx + rr, hz); c.arc(hx, hz, rr, 0, Math.PI * 2); });
+      const rr = Math.min(w, d) * 0.045 * Math.min(1, o.cable.x);
+      trace([pu[0], pu[1], pv[0], pv[1], c0[0], c0[1]], (c) => { c.moveTo(hole[0] + rr, hole[2]); c.arc(hole[0], hole[2], rr, 0, Math.PI * 2); });
       ctx.fillStyle = pal.cavityFloor; ctx.fill();
       ink(1, lineFor(lid));
     }
     const a = o.duck.x;
+    const wob = o.unstable.x, sway = (ph) => Math.sin(clock * 5.2 + ph);
+    const figs = [];
     if (a > 0.02) {
-      const figs = [];
       if (o.item === 'sculpture') {
         const g = standGrid(w, d);
         for (const ag of o.agents.values()) {
           const e = Math.min(a, ag.a.x);
           if (e < 0.02) continue;
-          const x = (ag.u.x - 0.5) * g.uw, zz = (ag.v.x - 0.5) * g.ud;
+          const x = (ag.u.x - 0.5) * g.uw, zz = (ag.v.x - 0.5) * g.ud, ph = ag.yaw * 3;
           figs.push({ kind: 'shadow', pos: [x, yT, zz], yaw: ag.yaw, s: g.s, alpha: Math.min(1, e) });
-          figs.push({ kind: 'duck', mat: 'chrome', pos: [x, yT + Math.max(0, 1 - e) * 520, zz], yaw: ag.yaw, s: g.s, q: e > 1 ? 1 - (e - 1) * 0.9 : 1, alpha: Math.min(1, e * 4) });
+          if (o.fix.x > 0.01) for (const [bx, bz] of [[0.42, 0.3], [-0.42, 0.3], [0.42, -0.3], [-0.42, -0.3]]) {
+            const v = mv(rotY(ag.yaw), [bx * g.s, 0, bz * g.s]);
+            figs.push({ kind: 'bolt', pos: [x + v[0], yT, zz + v[2]], s: g.s * 0.075 * Math.min(1.15, o.fix.x), alpha: Math.min(1, o.fix.x * 2) });
+          }
+          figs.push({ kind: 'duck', mat: st.stand.duck === 'yellow' ? 'yellow' : 'chrome', pos: [x, yT + Math.max(0, 1 - e) * 520, zz], yaw: ag.yaw, s: g.s, q: e > 1 ? 1 - (e - 1) * 0.9 : 1, roll: wob * 0.2 * sway(ph), pitch: wob * 0.1 * sway(ph * 1.7 + 1), alpha: Math.min(1, e * 4) });
         }
-      } else if (o.item === 'painting') {
-        const pw = Math.min(w * 0.85, 1000), ph = pw * 0.78, pd = clamp(d * 0.12, 20, 45), e = Math.min(a, 1);
-        const c = [-(1 - e) * w * 0.6, yT + ph / 2 + (1 - a) * (ph + 700), 0];
-        figs.push({ pos: c, draw: () => drawPainting(S, L, c, pw, ph, pd, (1 - e) * 0.5, Math.min(1, a * 3)) });
       } else {
         const qh = clamp(Math.min(w, d) * 1.2, 150, 800), qd = clamp(qh * 0.12, 20, 90);
         const b = [0, yT + Math.max(0, 1 - a) * 520, 0];
-        figs.push({ pos: [0, b[1] + qh / 2, 0], draw: () => drawQuestion(S, L, b, qh, qd, (1 - Math.min(a, 1)) * 0.3, Math.min(1, a * 3)) });
+        if (o.fix.x > 0.01) for (const [bx, bz] of [[0.3, 1.3], [-0.3, 1.3], [0.3, -1.3], [-0.3, -1.3]]) figs.push({ kind: 'bolt', pos: [bx * qh, yT, bz * qd], s: qh * 0.03 * Math.min(1.15, o.fix.x), alpha: Math.min(1, o.fix.x * 2) });
+        figs.push({ pos: [0, b[1] + qh / 2, 0], draw: () => drawQuestion(S, L, b, qh, qd, (1 - Math.min(a, 1)) * 0.3 + wob * 0.12 * sway(0), Math.min(1, a * 3)) });
       }
-      drawFigures(figs, P, z, S);
     }
+    if (o.cable.x > 0.02) drawStandCable(o, S, z, w, h, d, r, yT, hole);
+    if (figs.length) drawFigures(figs, P, z, S);
     if (st.view === 'stand' && st.step === 2 && o.op.x > 0.9) {
       polyPath(st.part === 'lid' ? o.hitLid : o.hitBody);
       ctx.setLineDash([6, 5]);
@@ -1004,7 +1100,7 @@ button:focus-visible{outline:2px solid var(--ink);outline-offset:2px}
     { c: [-0.04, 0.39, 0.31], r: [0.25, 0.12, 0.06], rz: -0.2 },
     { c: [-0.04, 0.39, -0.31], r: [0.25, 0.12, 0.06], rz: -0.2 },
     { c: [0.28, 0.74, 0], r: [0.21, 0.21, 0.2] },
-    { c: [0.5, 0.7, 0], r: [0.14, 0.05, 0.1], rz: -0.1 },
+    { c: [0.5, 0.7, 0], r: [0.14, 0.05, 0.1], rz: -0.1, beak: true },
     { c: [0.42, 0.8, 0.115], r: [0.032, 0.032, 0.032], eye: true },
     { c: [0.42, 0.8, -0.115], r: [0.032, 0.032, 0.032], eye: true },
   ];
@@ -1018,6 +1114,9 @@ button:focus-visible{outline:2px solid var(--ink);outline-offset:2px}
     silver: [[0, '#FFFFFF'], [0.14, '#F4F5F6'], [0.5, '#C0C3C8'], [0.82, '#8A8E95'], [1, '#B3B6BB']],
     chrome: [[0, '#FFFFFF'], [0.1, '#FFFFFF'], [0.3, '#CDD0D4'], [0.5, '#5A5E65'], [0.66, '#2A2D32'], [0.86, '#9FA3A9'], [1, '#E6E8EA']],
     cotton: [[0, '#FFFFFF'], [0.55, '#F3F3F0'], [1, '#D3D3CE']],
+    yellow: [[0, '#FFFBD6'], [0.18, '#FFE86A'], [0.55, '#FFD21F'], [0.85, '#E0A300'], [1, '#F2C230']],
+    orange: [[0, '#FFE2B8'], [0.3, '#FFA03A'], [0.8, '#E36A00'], [1, '#F08A2A']],
+    bolt: [[0, '#FFFFFF'], [0.4, '#B9BCC1'], [1, '#6E7278']],
   };
   const LIGHT3 = (() => { const v = [-0.45, 0.85, 0.35], n = Math.hypot(v[0], v[1], v[2]); return v.map((c) => c / n); })();
   const m3 = (a, b) => { const r = new Array(9); for (let i = 0; i < 3; i++) for (let j = 0; j < 3; j++) r[i * 3 + j] = a[i * 3] * b[j] + a[i * 3 + 1] * b[3 + j] + a[i * 3 + 2] * b[6 + j]; return r; };
@@ -1025,6 +1124,7 @@ button:focus-visible{outline:2px solid var(--ink);outline-offset:2px}
   const mtv = (m, v) => [m[0] * v[0] + m[3] * v[1] + m[6] * v[2], m[1] * v[0] + m[4] * v[1] + m[7] * v[2], m[2] * v[0] + m[5] * v[1] + m[8] * v[2]];
   const rotY = (a) => { const c = Math.cos(a), s = Math.sin(a); return [c, 0, s, 0, 1, 0, -s, 0, c]; };
   const rotZ = (a) => { const c = Math.cos(a), s = Math.sin(a); return [c, -s, 0, s, c, 0, 0, 0, 1]; };
+  const rotX = (a) => { const c = Math.cos(a), s = Math.sin(a); return [1, 0, 0, 0, c, -s, 0, s, c]; };
   const diag = (x, y, z) => [x, 0, 0, 0, y, 0, 0, 0, z];
   const norm3 = (v) => { const n = Math.hypot(v[0], v[1], v[2]) || 1; return [v[0] / n, v[1] / n, v[2] / n]; };
 
@@ -1049,10 +1149,23 @@ button:focus-visible{outline:2px solid var(--ink);outline-offset:2px}
       ctx.beginPath(); ctx.ellipse(e.cx, e.cy, e.rx, e.ry, e.th, 0, Math.PI * 2);
       ctx.fillStyle = `rgba(0,0,0,${(0.22 * f.alpha).toFixed(3)})`; ctx.fill();
     }
-    const list = figs.filter((f) => f.kind !== 'shadow').sort((a, b) => depth(a.pos) - depth(b.pos));
+    // vis de fixation : têtes posées sur le plateau, avec leur fente
+    for (const f of figs) {
+      if (f.kind !== 'bolt') continue;
+      const e = projEllipse(f.pos, diag(f.s, 0.001, f.s), P, z, S);
+      if (e.rx < 0.8) continue;
+      const ga = ctx.globalAlpha;
+      ctx.globalAlpha = ga * f.alpha;
+      ctx.beginPath(); ctx.ellipse(e.cx, e.cy, e.rx, e.ry, e.th, 0, Math.PI * 2);
+      ctx.fillStyle = '#A7AAB0'; ctx.fill(); ink(1, '#1A1A1A');
+      const a0 = S(f.pos[0] - f.s * 0.7, f.pos[1], f.pos[2]), a1 = S(f.pos[0] + f.s * 0.7, f.pos[1], f.pos[2]);
+      ctx.beginPath(); ctx.moveTo(a0[0], a0[1]); ctx.lineTo(a1[0], a1[1]); ink(1, '#1A1A1A');
+      ctx.globalAlpha = ga;
+    }
+    const list = figs.filter((f) => f.kind !== 'shadow' && f.kind !== 'bolt').sort((a, b) => depth(a.pos) - depth(b.pos));
     for (const f of list) {
       if (f.draw) { f.draw(); continue; }
-      const k = 1 / Math.sqrt(f.q), B = m3(rotY(f.yaw), diag(f.s * k, f.s * f.q, f.s * k));
+      const k = 1 / Math.sqrt(f.q), B = m3(m3(rotY(f.yaw), m3(rotX(f.roll || 0), rotZ(f.pitch || 0))), diag(f.s * k, f.s * f.q, f.s * k));
       const parts = (f.kind === 'duck' ? DUCK_PARTS : PUFF_PARTS).map((pt) => {
         const c = mv(B, pt.c), cw = [f.pos[0] + c[0], f.pos[1] + c[1], f.pos[2] + c[2]];
         return { pt, cw, M: m3(B, m3(rotZ(pt.rz || 0), diag(pt.r[0], pt.r[1], pt.r[2]))), dz: depth(cw) };
@@ -1077,7 +1190,7 @@ button:focus-visible{outline:2px solid var(--ink);outline-offset:2px}
     ctx.save();
     ctx.translate(e.cx, e.cy); ctx.rotate(e.th); ctx.scale(e.rx, e.ry);
     const g = ctx.createRadialGradient(ux, uy, 0.02, 0, 0, 1);
-    MATS[f.mat].forEach(([o, c]) => g.addColorStop(o, c));
+    MATS[f.mat === 'yellow' && it.pt.beak ? 'orange' : f.mat].forEach(([o, c]) => g.addColorStop(o, c));
     ctx.beginPath(); ctx.arc(0, 0, 1, 0, Math.PI * 2);
     ctx.fillStyle = g; ctx.fill();
     ctx.restore();
@@ -1266,6 +1379,7 @@ button:focus-visible{outline:2px solid var(--ink);outline-offset:2px}
     for (const sx of [-1, 1]) for (const sz of [-1, 1]) {
       add(sx * w / 2, 0, sz * d / 2); add(sx * w / 2, h, sz * d / 2);
       if (lift) add(bx + sx * w / 2, h + lift, bz + sz * d / 2);
+      if (full && o.kind === 'stand' && st.stand.cable) add(w / 2 + 380, 0, d / 2 + 300);
       add(sx * w / 2 + SHADOW[0] * h, 0, sz * d / 2 + SHADOW[1] * h);
     }
     if (full && o.show) add(0, o.kind === 'crate' ? h + crateProtrusion(o, w, h, d) + 20 : h + lift + standItemHeight(o, w, d), 0);
@@ -1324,12 +1438,13 @@ button:focus-visible{outline:2px solid var(--ink);outline-offset:2px}
   }
 
   /* ---------- loop ---------- */
-  const springsOf = (o) => [...KEYS.map((k) => o.dims[k]), o.lz, o.cx, o.cy, o.ax, o.ay, o.op, o.hov, o.lift, o.back, o.duck, o.reinf, o.fragile, o.cotton, o.cable, o.corner];
+  const springsOf = (o) => [...KEYS.map((k) => o.dims[k]), o.lz, o.cx, o.cy, o.ax, o.ay, o.op, o.hov, o.lift, o.back, o.duck, o.reinf, o.fragile, o.cotton, o.cable, o.unstable, o.fix, o.scan, o.corner];
   function kick() { if (!raf) { last = performance.now(); raf = requestAnimationFrame(tick); } }
   function tick(now) {
     raf = 0;
     const dt = clamp((now - last) / 1000, 0.001, 0.05);
     last = now;
+    if (!RM.matches) clock += dt;
     if (!drag && view.vel) {
       view.yaw.t += view.vel * dt; view.yaw.x = view.yaw.t;
       view.vel *= Math.exp(-3.4 * dt);
@@ -1362,12 +1477,15 @@ button:focus-visible{outline:2px solid var(--ink);outline-offset:2px}
           step(o.lift, hh, 60, 0.72); step(o.back, hh, 34, 0.85);
           if (o === crate) step(o.duck, hh, 70, 0.5); else step(o.duck, hh, 120, 0.36);
           step(o.reinf, hh, 30, 1); step(o.fragile, hh, 90, 0.55); step(o.cotton, hh, 9, 1); step(o.cable, hh, 40, 1); step(o.corner, hh, 80, 0.9);
+          step(o.unstable, hh, 20, 1); step(o.fix, hh, 70, 0.55); step(o.scan, hh, 20, 1);
         }
         for (const o of [crate, stand]) for (const ag of o.agents.values()) { step(ag.u, hh, 60, 0.9); step(ag.v, hh, 60, 0.9); step(ag.a, hh, 110, 0.42); }
         step(view.yaw, hh, 70, 1); step(view.pitch, hh, 70, 1);
       }
     }
-    const rest = !drag && !view.vel && !colorsMoving && [crate, stand].every((o) => springsOf(o).every(near)) && agentSprings().every(near) && near(view.yaw) && near(view.pitch);
+    // balancement du canard instable et balayage du scan : animation continue
+    const live = !RM.matches && st.view !== 'home' && ((st.kind === 'stand' && stand.unstable.x > 0.01 && stand.duck.x > 0.3) || (st.kind === 'crate' && crate.scan.x > 0.01 && crate.lift.x > 0.5));
+    const rest = !live && !drag && !view.vel && !colorsMoving && [crate, stand].every((o) => springsOf(o).every(near)) && agentSprings().every(near) && near(view.yaw) && near(view.pitch);
     if (rest) {
       [crate, stand].forEach((o) => springsOf(o).forEach((s) => { s.x = s.t; s.v = 0; }));
       agentSprings().forEach((s) => { s.x = s.t; s.v = 0; });
@@ -1478,6 +1596,7 @@ button:focus-visible{outline:2px solid var(--ink);outline-offset:2px}
     $$('[data-when]', panel).forEach((el) => { el.hidden = el.dataset.when !== st.part; });
     $$('[data-check]', panel).forEach((el) => { el.checked = !!readPath(el.dataset.check); });
     $$('[data-toggle]', panel).forEach((el) => el.setAttribute('aria-pressed', String(!!readPath(el.dataset.toggle))));
+    $$('[data-duckfin]', panel).forEach((el) => { el.hidden = st[el.dataset.duckfin].item !== 'sculpture'; });
   }
   function buildSwatches() {
     const p = st.stand[st.part];
@@ -1508,6 +1627,10 @@ button:focus-visible{outline:2px solid var(--ink);outline-offset:2px}
     crate.itemWant = st.crate.item;
     stand.itemWant = st.stand.item;
     stand.cable.t = st.stand.cable ? 1 : 0;
+    stand.unstable.t = st.stand.stable ? 0 : 1;
+    stand.reinf.t = st.stand.reinforce ? 1 : 0;
+    stand.fix.t = st.stand.fixings ? 1 : 0;
+    crate.scan.t = st.crate.scan ? 1 : 0;
     stand.col.body.tgt = hex(PALETTES[st.stand.body.mat][st.stand.body.i]);
     stand.col.lid.tgt = hex(PALETTES[st.stand.lid.mat][st.stand.lid.i]);
     kick();
@@ -1520,10 +1643,10 @@ button:focus-visible{outline:2px solid var(--ink);outline-offset:2px}
     let rows;
     if (st.kind === 'crate') {
       const c = st.crate;
-      rows = [['Dimensions', dimsTxt(crate), 'crate'], ['Objet', ITEM.crate[c.item], 'crate'], ['Poids de l’objet', kg(c.weight), 'crate'], ['Matériau', MAT[c.material], 'crate'], ['Fragile', yn(c.fragile), 'crate'], ['Renfort', yn(c.reinforce), 'crate'], ['Scan 3D', yn(c.scan), 'crate']];
+      rows = [['Dimensions', dimsTxt(crate), 'crate'], ['Objet', c.item === 'sculpture' ? `Sculpture (${DUCK_NAME.crate[c.duck]})` : ITEM.crate[c.item], 'crate'], ['Poids de l’objet', kg(c.weight), 'crate'], ['Matériau', MAT[c.material], 'crate'], ['Fragile', yn(c.fragile), 'crate'], ['Renfort', yn(c.reinforce), 'crate'], ['Scan 3D', yn(c.scan), 'crate']];
     } else {
       const s = st.stand;
-      rows = [['Dimensions', dimsTxt(stand), 'stand-1'], ['Angles', pad(s.corner + 1), 'stand-1'], ['Corps', `${s.body.mat} ${pad(s.body.i + 1)}`, 'stand-2'], ['Plateau', `${s.lid.mat} ${pad(s.lid.i + 1)} · ${s.lidType === 'custom' ? 'sur mesure' : 'standard'}`, 'stand-2'], ['Objet', ITEM.stand[s.item], 'stand-3'], ['Poids de l’objet', kg(s.weight), 'stand-3'], ['Stable', yn(s.stable), 'stand-3'], ['Renfort', yn(s.reinforce), 'stand-3'], ['Fixations', yn(s.fixings), 'stand-3'], ['Passage de câble', yn(s.cable), 'stand-3']];
+      rows = [['Dimensions', dimsTxt(stand), 'stand-1'], ['Angles', pad(s.corner + 1), 'stand-1'], ['Corps', `${s.body.mat} ${pad(s.body.i + 1)}`, 'stand-2'], ['Plateau', `${s.lid.mat} ${pad(s.lid.i + 1)} · ${s.lidType === 'custom' ? 'sur mesure' : 'standard'}`, 'stand-2'], ['Objet', s.item === 'sculpture' ? `Sculpture (${DUCK_NAME.stand[s.duck]})` : ITEM.stand[s.item], 'stand-3'], ['Poids de l’objet', kg(s.weight), 'stand-3'], ['Stable', yn(s.stable), 'stand-3'], ['Renfort', yn(s.reinforce), 'stand-3'], ['Fixations', yn(s.fixings), 'stand-3'], ['Passage de câble', yn(s.cable), 'stand-3']];
       if (s.comment) rows.push(['Commentaire', s.comment, 'stand-3']);
     }
     $('#summary').innerHTML = rows.map(([k, v, g]) => `<button type="button" data-go="${g}"><span class="k">${esc(k)}</span><span class="v">${esc(v)}</span></button>`).join('');
