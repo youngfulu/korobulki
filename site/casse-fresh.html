@@ -94,6 +94,7 @@ button:focus-visible{outline:2px solid var(--ink);outline-offset:2px}
 .cta:hover{opacity:.88}
 .ghost{background:transparent}
 .ghost:hover{background:var(--paper-2)}
+.bar .bar-cta{flex:none;width:clamp(200px,17vw,300px);margin:0;align-self:flex-end}
 .hint{margin:-8px 0 18px;color:var(--graphite);font-size:13px}
 .corners{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}
 .corners button{display:flex;flex-direction:column;align-items:center;gap:8px;padding:12px 0 10px;border:1.5px solid transparent;border-radius:12px;background:none;cursor:pointer;font:600 13px var(--f-mono)}
@@ -137,7 +138,8 @@ button:focus-visible{outline:2px solid var(--ink);outline-offset:2px}
   .panel,.app:not([data-view="home"]) .panel{position:static;flex:none;width:auto;transform:none;opacity:1;visibility:visible;overflow:visible;border-left:0;border-top:1px solid var(--rule);padding:10px 0 6px;display:none;transition:none}
   .app:not([data-view="home"]) .panel{display:block;animation:rise .45s .2s both}
   .bar,.app:not([data-view="home"]) .bar{position:static;flex:none;height:auto;transform:none;display:none;gap:10px;padding:8px 0 calc(10px + env(safe-area-inset-bottom,0px));transition:none}
-  .app:not([data-view="home"]) .bar{display:flex}
+  .app:not([data-view="home"]) .bar{display:flex;flex-wrap:wrap;row-gap:10px}
+  .bar .bar-cta{flex:1 0 100%;width:auto;margin:0}
   .bar .opt{display:none}
   .field-label .name{display:none}
   .field-row,.ro output{margin-top:4px}
@@ -218,7 +220,6 @@ button:focus-visible{outline:2px solid var(--ink);outline-offset:2px}
           <button type="button" data-toggle="crate.reinforce" aria-pressed="false">Renfort</button>
           <button type="button" data-toggle="crate.scan" aria-pressed="false">Scan 3D</button>
         </div>
-        <button type="button" class="cta" data-go="request">Demander un devis</button>
       </section>
 
       <section class="step" data-step="stand-1" hidden>
@@ -230,7 +231,6 @@ button:focus-visible{outline:2px solid var(--ink);outline-offset:2px}
           <button type="button" role="radio" data-set="stand.corner" data-value="2" aria-label="Angles 03, arrondis"><svg viewBox="0 0 48 48" aria-hidden="true"><rect x="6" y="6" width="36" height="36" rx="8"/></svg><span>03</span></button>
           <button type="button" role="radio" data-set="stand.corner" data-value="3" aria-label="Angles 04, très arrondis"><svg viewBox="0 0 48 48" aria-hidden="true"><rect x="6" y="6" width="36" height="36" rx="15"/></svg><span>04</span></button>
         </div>
-        <button type="button" class="cta" data-go="stand-2">Suivant&nbsp;: finition</button>
       </section>
 
       <section class="step" data-step="stand-2" hidden>
@@ -247,7 +247,6 @@ button:focus-visible{outline:2px solid var(--ink);outline-offset:2px}
         <div class="swatches" id="swatches" role="radiogroup" aria-label="Couleur"></div>
         <p class="swatch-name" id="swatch-name"></p>
         <div class="lidtype" data-when="lid"><span>Plateau</span><div class="seg" role="radiogroup" aria-label="Type de plateau"><button type="button" role="radio" data-set="stand.lidType" data-value="standard">Standard</button><button type="button" role="radio" data-set="stand.lidType" data-value="custom">Sur mesure</button></div></div>
-        <button type="button" class="cta" data-go="stand-3">Suivant&nbsp;: objet</button>
       </section>
 
       <section class="step" data-step="stand-3" hidden>
@@ -271,7 +270,6 @@ button:focus-visible{outline:2px solid var(--ink);outline-offset:2px}
           <button type="button" data-toggle="stand.cable" aria-pressed="false">Câble</button>
         </div>
         <label class="line" style="margin-top:14px"><span>Commentaire</span><input id="stand-comment" data-input="stand.comment" type="text" placeholder="accès, entretien…"></label>
-        <button type="button" class="cta" data-go="request">Demander un devis</button>
       </section>
 
       <section class="step" data-step="request" hidden>
@@ -283,7 +281,6 @@ button:focus-visible{outline:2px solid var(--ink);outline-offset:2px}
           <label class="line"><span>E-mail ou téléphone</span><input id="f-contact" type="text" autocomplete="email"></label>
           <label class="line"><span>Société</span><input id="f-company" type="text" autocomplete="organization"></label>
           <p class="err" id="f-err" hidden>Indiquez votre nom et un moyen de vous joindre.</p>
-          <button type="submit" class="cta">Envoyer la demande</button>
         </form>
       </section>
 
@@ -291,7 +288,6 @@ button:focus-visible{outline:2px solid var(--ink);outline-offset:2px}
         <h2>Merci&nbsp;!</h2>
         <p>Nous calculons votre configuration et revenons vers vous.</p>
         <p class="hint" style="margin:0">Prototype&nbsp;: l’envoi n’est pas encore branché, rien n’a été transmis.</p>
-        <button type="button" class="ghost" data-go="home">Nouvelle configuration</button>
       </section>
     </aside>
 
@@ -302,6 +298,7 @@ button:focus-visible{outline:2px solid var(--ink);outline-offset:2px}
       <div class="cell ro opt" id="cell-corner" hidden><span class="lbl">Angles</span><output id="o-corner">02</output></div>
       <div class="cell ro opt"><span class="lbl">Poids</span><output id="o-weight">— kg</output></div>
       <div class="cell ro"><span class="lbl">Prix</span><output id="o-price">— €</output></div>
+      <button type="button" class="cta bar-cta" id="cta">Demander un devis</button>
     </div>
   </div>
 </div>
@@ -1426,8 +1423,24 @@ button:focus-visible{outline:2px solid var(--ink);outline-offset:2px}
     el.innerHTML = st.view === 'home' ? '' : html;
   }
 
+  // Un seul bouton d'action, toujours en bas : son texte et sa cible suivent l'étape.
+  const CTA = {
+    crate: ['Demander un devis', 'request'], 'stand-1': ['Suivant\u00a0: finition', 'stand-2'], 'stand-2': ['Suivant\u00a0: objet', 'stand-3'],
+    'stand-3': ['Demander un devis', 'request'], request: ['Envoyer la demande', 'submit'], done: ['Nouvelle configuration', 'home'],
+  };
+  const ctaBtn = $('#cta');
+  function renderCta(key) {
+    const c = CTA[key];
+    if (!c) return;
+    ctaBtn.textContent = c[0];
+    ctaBtn.dataset.target = c[1];
+    ctaBtn.className = (key === 'done' ? 'ghost' : 'cta') + ' bar-cta';
+  }
+  ctaBtn.addEventListener('click', () => { if (ctaBtn.dataset.target === 'submit') submitRequest(); else go(ctaBtn.dataset.target); });
+
   function renderPanel() {
     const key = st.view === 'crate' ? 'crate' : st.view === 'stand' ? 'stand-' + st.step : st.view;
+    renderCta(key);
     $$('.step', panel).forEach((s) => { s.hidden = s.dataset.step !== key; });
     $('#cell-corner').hidden = st.kind !== 'stand';
     if (key === 'stand-2') buildSwatches();
@@ -1536,12 +1549,13 @@ button:focus-visible{outline:2px solid var(--ink);outline-offset:2px}
   });
   $$('[data-input]', panel).forEach((el) => el.addEventListener('input', () => writePath(el.dataset.input, el.value)));
   $$('[data-check]', panel).forEach((el) => el.addEventListener('change', () => { writePath(el.dataset.check, el.checked); syncControls(); }));
-  $('#request-form').addEventListener('submit', (e) => {
-    e.preventDefault();
+  function submitRequest() {
     const ok = $('#f-name').value.trim() && $('#f-contact').value.trim();
     $('#f-err').hidden = !!ok;
     if (ok) go('done');
-  });
+  }
+  $('#request-form').addEventListener('submit', (e) => { e.preventDefault(); submitRequest(); });
+  $$('#request-form input').forEach((el) => el.addEventListener('keydown', (e) => { if (e.key === 'Enter') { e.preventDefault(); submitRequest(); } }));
   $('#to-home').addEventListener('click', () => go('home'));
   $$('.pick').forEach((btn) => {
     const kind = btn.dataset.kind;
